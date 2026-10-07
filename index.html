@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1D3557">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Utenze">
+<title>Dichiarazione utenze domestiche</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#EEF1F4; --surface:#FFFFFF; --sunk:#F5F7F9; --ink:#16202C; --muted:#5B6775; --line:#D3DAE2;
+  --primary:#1D3557; --primary-ink:#FFFFFF; --focus:#3B82C4;
+  --water:#13808F; --power:#C98A00; --gas:#2F55CF;
+  --danger:#B42318; --ok:#23704A;
+  --r-lg:18px; --r-md:12px; --r-sm:8px;
+  --font:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F151C; --surface:#18212B; --sunk:#131B24; --ink:#E7ECF1; --muted:#9AA7B4; --line:#2B3744;
+    --primary:#9DBDEB; --primary-ink:#0E1620; --focus:#9DBDEB;
+    --water:#4CC0CE; --power:#F0BC3A; --gas:#86A0F5;
+    --danger:#F0857A; --ok:#6FCF97; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F151C; --surface:#18212B; --sunk:#131B24; --ink:#E7ECF1; --muted:#9AA7B4; --line:#2B3744;
+  --primary:#9DBDEB; --primary-ink:#0E1620; --focus:#9DBDEB;
+  --water:#4CC0CE; --power:#F0BC3A; --gas:#86A0F5;
+  --danger:#F0857A; --ok:#6FCF97; color-scheme: dark;
+}
+:root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); -webkit-text-size-adjust:100%; }
+*,*::before,*::after{ box-sizing:inherit; }
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--font); font-size:17px; line-height:1.45; }
+button,input,select,textarea{ font:inherit; color:inherit; }
+img{ max-width:100%; }
+.wrap{ max-width:560px; margin:0 auto; padding:0 16px 140px; }
+
+/* top */
+.top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:22px 0 14px; }
+.top h1{ font-size:15px; font-weight:400; color:var(--muted); margin:0 0 2px; }
+.month{ font-size:34px; line-height:1.05; font-weight:700; letter-spacing:-0.01em; margin:0; }
+.month-pick{ position:relative; display:inline-flex; align-items:center; gap:8px; }
+.month-pick input{ position:absolute; inset:0; opacity:0; width:100%; cursor:pointer; }
+.month-pick svg{ width:20px; height:20px; color:var(--muted); }
+.iconbtn{ flex:none; width:46px; height:46px; border-radius:50%; border:1px solid var(--line); background:var(--surface); display:grid; place-items:center; cursor:pointer; }
+.iconbtn svg{ width:22px; height:22px; }
+.status{ font-size:15px; color:var(--muted); margin:6px 0 0; }
+.status.ok{ color:var(--ok); }
+
+/* sections */
+.block{ margin-top:22px; }
+.block > h2{ font-size:20px; margin:0 0 10px; display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.block > h2 small{ font-size:15px; font-weight:400; color:var(--muted); }
+.panel{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); padding:16px; }
+
+/* quick add */
+.adders{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.adder{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 6px 12px; border-radius:var(--r-md); border:1.5px dashed var(--line); background:transparent; cursor:pointer; font-weight:700; font-size:15px; }
+.adder .glyph{ width:40px; height:40px; }
+.adder:active{ transform:scale(.97); }
+
+/* bill card */
+.bills{ display:flex; flex-direction:column; gap:12px; margin-bottom:12px; }
+.bill{ background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); overflow:hidden; }
+.bill-head{ display:flex; align-items:center; gap:12px; padding:12px 12px 12px 12px; border-bottom:1px solid var(--line); }
+.glyph{ flex:none; width:44px; height:44px; border-radius:12px; display:grid; place-items:center; color:var(--surface); }
+.glyph svg{ width:24px; height:24px; }
+.t-idrico .glyph,.glyph.t-idrico{ background:var(--water); }
+.t-elettrica .glyph,.glyph.t-elettrica{ background:var(--power); }
+.t-gas .glyph,.glyph.t-gas{ background:var(--gas); }
+.bill-title{ flex:1; min-width:0; }
+.bill-title b{ display:block; font-size:17px; }
+.bill-title span{ font-size:14px; color:var(--muted); }
+.amount{ width:140px; flex:none; }
+.amount input{ text-align:right; font-weight:700; font-size:20px; padding-left:28px; }
+.amount{ position:relative; }
+.amount::before{ content:"€"; position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-weight:700; pointer-events:none; }
+.bill-body{ padding:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px 10px; }
+.bill-body .full{ grid-column:1/-1; }
+.del{ border:none; background:none; color:var(--muted); width:36px; height:36px; border-radius:50%; cursor:pointer; display:grid; place-items:center; flex:none; }
+.del svg{ width:20px; height:20px; }
+details.more{ grid-column:1/-1; border-top:1px dashed var(--line); padding-top:8px; }
+details.more summary{ cursor:pointer; color:var(--muted); font-size:15px; padding:6px 0; list-style:none; }
+details.more summary::-webkit-details-marker{ display:none; }
+details.more summary::before{ content:"+ "; }
+details.more[open] summary::before{ content:"– "; }
+details.more .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
+
+/* fields */
+label.f{ display:flex; flex-direction:column; gap:4px; font-size:14px; color:var(--muted); min-width:0; }
+input.in, select.in{ width:100%; min-height:46px; padding:10px 12px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--sunk); font-size:16px; color:var(--ink); -webkit-appearance:none; appearance:none; }
+input.in[type="date"]{ display:block; min-width:0; }
+input.in:focus, select.in:focus{ outline:2px solid var(--focus); outline-offset:1px; background:var(--surface); }
+input.in.bad{ border-color:var(--danger); }
+.upper{ text-transform:uppercase; }
+.row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.row3{ display:grid; grid-template-columns:2fr 1fr; gap:10px; }
+.stack{ display:flex; flex-direction:column; gap:12px; }
+.hint{ font-size:14px; color:var(--muted); margin:0; }
+
+/* total */
+.total{ display:flex; justify-content:space-between; align-items:baseline; padding:4px 4px 0; font-size:16px; color:var(--muted); }
+.total b{ font-size:22px; color:var(--ink); }
+
+/* signature */
+.sigbox{ position:relative; border:1.5px solid var(--line); border-radius:var(--r-md); background:var(--sunk); height:190px; touch-action:none; overflow:hidden; }
+.sigbox canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+.sigline{ position:absolute; left:18px; right:18px; bottom:42px; border-bottom:1px solid var(--line); pointer-events:none; }
+.sigph{ position:absolute; left:0; right:0; bottom:14px; text-align:center; font-size:14px; color:var(--muted); pointer-events:none; }
+.sigtools{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+
+/* buttons */
+.btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:50px; padding:12px 18px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font-weight:700; font-size:16px; cursor:pointer; text-decoration:none; text-align:center; }
+.btn.primary{ background:var(--primary); border-color:var(--primary); color:var(--primary-ink); }
+.btn.ghost{ background:transparent; border-color:transparent; color:var(--muted); min-height:40px; padding:8px 10px; font-weight:400; }
+.btn.block{ width:100%; }
+.btn[disabled]{ opacity:.5; cursor:default; }
+.btn svg{ width:20px; height:20px; }
+:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
+
+.dock{ position:fixed; left:0; right:0; bottom:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px)); background:linear-gradient(to top, var(--bg) 70%, transparent); z-index:5; }
+.dock .inner{ max-width:560px; margin:0 auto; }
+.dock .btn{ width:100%; min-height:56px; font-size:17px; }
+
+/* chips (radio) */
+.chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.chip{ position:relative; }
+.chip input{ position:absolute; opacity:0; inset:0; margin:0; cursor:pointer; }
+.chip span{ display:block; padding:10px 14px; border-radius:999px; border:1px solid var(--line); background:var(--surface); font-size:15px; }
+.chip input:checked + span{ background:var(--primary); border-color:var(--primary); color:var(--primary-ink); font-weight:700; }
+.chip input:focus-visible + span{ outline:3px solid var(--focus); outline-offset:2px; }
+.reveal{ display:none; }
+.reveal.on{ display:flex; }
+
+/* wizard */
+.steps{ display:flex; gap:6px; margin:4px 0 18px; }
+.steps i{ flex:1; height:5px; border-radius:3px; background:var(--line); }
+.steps i.on{ background:var(--primary); }
+.step{ display:none; }
+.step.on{ display:block; }
+.step h2{ font-size:26px; margin:0 0 6px; line-height:1.15; }
+.step > p.lead{ color:var(--muted); margin:0 0 18px; }
+.q{ font-weight:700; font-size:16px; margin:4px 0 8px; color:var(--ink); }
+.wiznav{ display:flex; gap:10px; }
+.wiznav .btn{ flex:1; }
+
+/* id upload */
+.idgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.idslot{ position:relative; aspect-ratio: 1.58; border:1.5px dashed var(--line); border-radius:var(--r-md); background:var(--sunk); display:grid; place-items:center; text-align:center; color:var(--muted); font-size:14px; overflow:hidden; cursor:pointer; }
+.idslot input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+.idslot img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.idslot.has{ border-style:solid; }
+.idslot .tag{ position:absolute; left:8px; bottom:8px; background:rgba(0,0,0,.6); color:#fff; padding:2px 8px; border-radius:6px; font-size:13px; }
+
+/* sheet */
+.scrim{ position:fixed; inset:0; background:rgba(10,15,22,.5); z-index:20; display:none; }
+.scrim.on{ display:block; }
+.sheet{ position:fixed; left:0; right:0; bottom:0; z-index:21; background:var(--surface); border-radius:22px 22px 0 0; padding:10px 18px calc(20px + env(safe-area-inset-bottom,0px)); transform:translateY(105%); visibility:hidden; transition:transform .28s ease, visibility 0s .28s; max-height:92%; overflow:auto; }
+.sheet.on{ transform:none; visibility:visible; transition:transform .28s ease; }
+.sheet .grab{ width:44px; height:5px; border-radius:3px; background:var(--line); margin:4px auto 14px; }
+.sheet h3{ margin:0 0 4px; font-size:22px; }
+.sheet .file{ display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--line); border-radius:var(--r-md); margin:12px 0 14px; }
+.sheet .file svg{ width:32px; height:32px; color:var(--danger); flex:none; }
+.sheet .file b{ display:block; font-size:15px; word-break:break-all; }
+.sheet .file span{ font-size:13px; color:var(--muted); }
+.sheet .acts{ display:flex; flex-direction:column; gap:10px; }
+.note{ font-size:14px; color:var(--muted); background:var(--sunk); border-radius:var(--r-sm); padding:10px 12px; margin:10px 0 0; }
+
+.toast{ position:fixed; left:50%; bottom:calc(92px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%) translateY(20px); opacity:0; background:var(--ink); color:var(--bg); padding:12px 16px; border-radius:12px; font-size:15px; max-width:92%; z-index:30; transition:all .2s; pointer-events:none; text-align:center; }
+.toast.on{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+.empty{ text-align:center; color:var(--muted); font-size:15px; padding:6px 0 12px; margin:0; }
+.history{ list-style:none; padding:0; margin:0; }
+.history li{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:15px; }
+.history li:last-child{ border-bottom:none; }
+.history li span:first-child{ text-transform:capitalize; }
+.hidden{ display:none !important; }
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+@media (max-width:360px){ .row2,.bill-body,details.more .grid{ grid-template-columns:1fr; } .month{ font-size:28px; } }
+</style>
+</head>
+<body>
+
+<!-- SVG icons -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-drop" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5c-.3 0-.6.15-.8.4C9.1 5.6 5 11.1 5 14.6 5 18.7 8.1 22 12 22s7-3.3 7-7.4c0-3.5-4.1-9-6.2-11.7a1 1 0 0 0-.8-.4Zm-2.6 12.2a.9.9 0 0 1 .9.9c0 1.2.9 2.1 2.1 2.1a.9.9 0 1 1 0 1.8c-2.2 0-3.9-1.7-3.9-3.9 0-.5.4-.9.9-.9Z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path fill="currentColor" d="M13.6 2.2a.8.8 0 0 0-1.4-.5L4.4 12.4a.8.8 0 0 0 .7 1.3h5.6l-1.3 8a.8.8 0 0 0 1.4.6l7.8-10.7a.8.8 0 0 0-.7-1.3h-5.6l1.3-8.1Z"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path fill="currentColor" d="M12.7 2.3a.8.8 0 0 0-1.3.5c-.3 2.4-1.6 4-3 5.6C6.9 10.1 5 12 5 15.1 5 19 8.1 22 12 22s7-3 7-6.9c0-2.6-1.2-4.6-2.6-6.3-.3-.4-.9-.3-1.1.1-.4.9-.9 1.6-1.6 2.1.3-3.1-.6-6.5-1-8.7Zm-.7 17.9c-1.7 0-3-1.2-3-2.9 0-1.5 1-2.6 2.3-3.9.3-.3.8-.2.9.2.2.6.5 1.1 1 1.4.2-.5.3-1 .3-1.6 0-.4.5-.6.8-.3.9.9 1.7 2.2 1.7 4.2 0 1.7-1.3 2.9-3 2.9Z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Zm7.4-3.2c0-.5 0-1-.1-1.4l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-2.4-1.4L14 2.6h-4l-.5 2.6c-.9.3-1.7.8-2.4 1.4l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2.8l-2 1.6 2 3.4 2.4-1c.7.6 1.5 1.1 2.4 1.4l.5 2.6h4l.5-2.6c.9-.3 1.7-.8 2.4-1.4l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.4Z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-pdf" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h8l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm7 1.5V8h4.5L13 3.5ZM7.5 13v5h1.2v-1.6h.8c1 0 1.7-.6 1.7-1.7S10.5 13 9.5 13h-2Zm1.2 1h.7c.4 0 .6.3.6.7s-.2.7-.6.7h-.7V14Zm2.8-1v5h1.6c1.5 0 2.3-1 2.3-2.5S14.6 13 13.1 13h-1.6Zm1.2 1h.4c.8 0 1.1.6 1.1 1.5S13.9 17 13.1 17h-.4v-3Zm3.4-1v5h1.2v-2h1.6v-1h-1.6v-1h1.8v-1h-3Z"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M3.5 6.5h17v11h-17zM4 7l8 6 8-6"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 6.5h16v13H4zM4 10.5h16M8 4v4M16 4v4"/></symbol>
+</svg>
+
+<div class="wrap">
+
+  <!-- ============ SETUP / IMPOSTAZIONI ============ -->
+  <section id="setup" class="hidden" aria-label="Impostazioni">
+    <div class="top">
+      <div>
+        <h1 id="setupKicker">Prima configurazione</h1>
+        <p class="month" style="font-size:26px" id="setupTitle">Lo fai una volta sola</p>
+      </div>
+      <button class="iconbtn hidden" id="setupClose" aria-label="Chiudi impostazioni"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="steps" id="stepsBar"><i></i><i></i><i></i><i></i><i></i></div>
+
+    <div class="step" data-step="1">
+      <h2>Datore di lavoro</h2>
+      <p class="lead">A chi va la dichiarazione ogni mese.</p>
+      <div class="panel stack">
+        <label class="f">Ragione sociale<input class="in" data-bind="datore.rs" data-req autocomplete="organization"></label>
+        <label class="f">Partita IVA<input class="in" data-bind="datore.piva" data-req inputmode="numeric" maxlength="13"></label>
+        <label class="f">Email a cui inviare la dichiarazione<input class="in" type="email" data-bind="datore.email" data-req autocomplete="off" inputmode="email"></label>
+      </div>
+    </div>
+
+    <div class="step" data-step="2">
+      <h2>I tuoi dati</h2>
+      <p class="lead">Compaiono nell’intestazione della dichiarazione.</p>
+      <div class="panel stack">
+        <div class="row2">
+          <label class="f">Cognome<input class="in" data-bind="dip.cognome" data-req autocomplete="family-name"></label>
+          <label class="f">Nome<input class="in" data-bind="dip.nome" data-req autocomplete="given-name"></label>
+        </div>
+        <label class="f">Data di nascita<input class="in" type="date" data-bind="dip.nascita" data-req></label>
+        <div class="row3">
+          <label class="f">Luogo di nascita<input class="in" data-bind="dip.luogo" data-req></label>
+          <label class="f">Prov.<input class="in upper" data-bind="dip.prov" data-req maxlength="2" autocapitalize="characters"></label>
+        </div>
+        <label class="f">Codice fiscale<input class="in upper" data-bind="dip.cf" data-req data-cf maxlength="16" autocapitalize="characters" autocomplete="off" spellcheck="false"></label>
+      </div>
+    </div>
+
+    <div class="step" data-step="3">
+      <h2>Casa e bollette</h2>
+      <p class="lead">Di solito non cambia mai. Se cambia, lo modifichi dalle impostazioni.</p>
+      <div class="panel stack">
+        <div>
+          <p class="q">Chi ha la casa in affitto o in proprietà?</p>
+          <div class="chips" data-group="immobile"></div>
+        </div>
+        <div class="reveal stack" data-person="immobile"></div>
+      </div>
+      <div class="panel stack" style="margin-top:12px">
+        <div>
+          <p class="q">Chi paga le bollette?</p>
+          <div class="chips" data-group="spese"></div>
+        </div>
+        <div class="reveal stack" data-person="spese"></div>
+      </div>
+      <div class="panel stack" style="margin-top:12px">
+        <div>
+          <p class="q">Le bollette sono intestate a…</p>
+          <div class="chips" id="intestChips">
+            <label class="chip"><input type="radio" name="intest" value="no"><span>Chi le paga</span></label>
+            <label class="chip"><input type="radio" name="intest" value="condominio"><span>Condominio</span></label>
+            <label class="chip"><input type="radio" name="intest" value="locatore"><span>Proprietario di casa</span></label>
+          </div>
+        </div>
+        <div class="reveal stack" data-intest="condominio">
+          <label class="f">Nome del condominio<input class="in" data-bind="intest.denom"></label>
+          <label class="f">Codice fiscale del condominio<input class="in upper" data-bind="intest.cfCond" maxlength="16" autocapitalize="characters" spellcheck="false"></label>
+          <p class="hint">Le spese devono essere ripartite in modo analitico (documento di riparto dell’amministratore).</p>
+        </div>
+        <div class="reveal stack" data-intest="locatore">
+          <div class="row2">
+            <label class="f">Cognome proprietario<input class="in" data-bind="intest.cognome"></label>
+            <label class="f">Nome proprietario<input class="in" data-bind="intest.nome"></label>
+          </div>
+          <label class="f">Codice fiscale proprietario<input class="in upper" data-bind="intest.cf" maxlength="16" autocapitalize="characters" spellcheck="false"></label>
+          <p class="hint">Il contratto di affitto deve prevedere l’addebito delle utenze all’inquilino.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" data-step="4">
+      <h2>Carta d’identità</h2>
+      <p class="lead">Fai una foto a fronte e retro. Resta salvata su questo telefono e viene allegata al PDF ogni mese.</p>
+      <div class="idgrid">
+        <label class="idslot" id="slotF"><input type="file" accept="image/*" data-doc="docF" aria-label="Foto fronte del documento"><span>Tocca per<br>fotografare il fronte</span></label>
+        <label class="idslot" id="slotB"><input type="file" accept="image/*" data-doc="docB" aria-label="Foto retro del documento"><span>Tocca per<br>fotografare il retro</span></label>
+      </div>
+      <p class="hint" style="margin-top:10px">Controlla che il documento sia in corso di validità. Quando scade, tocca la foto per sostituirla.</p>
+    </div>
+
+    <div class="step" data-step="5">
+      <h2>Promemoria mensile</h2>
+      <p class="lead">Aggiunge al calendario del telefono un evento che si ripete ogni mese.</p>
+      <div class="panel stack">
+        <div class="row2">
+          <label class="f">Giorno del mese
+            <select class="in" id="remDay" data-bind="promemoria.giorno"></select>
+          </label>
+          <label class="f">Ora<input class="in" type="time" data-bind="promemoria.ora" id="remTime"></label>
+        </div>
+        <a class="btn primary block" id="remGoogle" target="_blank" rel="noopener"><svg><use href="#i-cal"/></svg>Aggiungi a Google Calendar</a>
+        <button class="btn block" id="remIcs" type="button"><svg><use href="#i-cal"/></svg>Aggiungi al calendario iPhone</button>
+        <p class="hint">Android: usa Google Calendar. iPhone: usa il secondo pulsante e poi “Aggiungi tutto”.</p>
+      </div>
+    </div>
+
+    <div class="wiznav" style="margin-top:20px">
+      <button class="btn" id="wizBack" type="button">Indietro</button>
+      <button class="btn primary" id="wizNext" type="button">Avanti</button>
+    </div>
+  </section>
+
+  <!-- ============ HOME MENSILE ============ -->
+  <section id="home" class="hidden" aria-label="Dichiarazione del mese">
+    <div class="top">
+      <div>
+        <h1>Dichiarazione utenze domestiche</h1>
+        <label class="month-pick">
+          <span class="month" id="monthLabel">—</span>
+          <svg><use href="#i-down"/></svg>
+          <input type="month" id="monthInput" aria-label="Cambia mese di riferimento">
+        </label>
+        <p class="status" id="statusLine"></p>
+      </div>
+      <button class="iconbtn" id="openSettings" aria-label="Impostazioni"><svg><use href="#i-gear"/></svg></button>
+    </div>
+
+    <div class="block">
+      <h2>Bollette pagate <small id="billCount"></small></h2>
+      <div class="bills" id="bills"></div>
+      <p class="empty" id="billsEmpty">Aggiungi le bollette pagate in questo mese.</p>
+      <div class="adders">
+        <button class="adder t-idrico" data-add="idrico" type="button"><span class="glyph"><svg><use href="#i-drop"/></svg></span>Acqua</button>
+        <button class="adder t-elettrica" data-add="elettrica" type="button"><span class="glyph"><svg><use href="#i-bolt"/></svg></span>Luce</button>
+        <button class="adder t-gas" data-add="gas" type="button"><span class="glyph"><svg><use href="#i-flame"/></svg></span>Gas</button>
+      </div>
+      <div class="total" id="totalRow"><span>Totale da rimborsare</span><b id="totalVal">€ 0,00</b></div>
+    </div>
+
+    <div class="block">
+      <h2>Firma</h2>
+      <div class="sigbox" id="sigbox">
+        <div class="sigline"></div>
+        <div class="sigph" id="sigph">Firma qui con il dito</div>
+        <canvas id="sig" aria-label="Area firma"></canvas>
+      </div>
+      <div class="sigtools">
+        <span class="hint" id="sigHint">La firma vale per la dichiarazione di questo mese.</span>
+        <button class="btn ghost" id="sigClear" type="button">Cancella</button>
+      </div>
+    </div>
+
+    <div class="block" id="histBlock">
+      <h2>Inviate</h2>
+      <div class="panel"><ul class="history" id="history"></ul></div>
+    </div>
+  </section>
+</div>
+
+<div class="dock hidden" id="dock"><div class="inner">
+  <button class="btn primary" id="makePdf" type="button"><svg><use href="#i-pdf"/></svg>Crea PDF e invia</button>
+</div></div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="grab"></div>
+  <h3 id="sheetTitle">PDF pronto</h3>
+  <p class="hint" id="sheetSub">Dichiarazione firmata con la carta d’identità allegata.</p>
+  <div class="file"><svg><use href="#i-pdf"/></svg><div><b id="fileName"></b><span id="fileSize"></span></div></div>
+  <div class="acts">
+    <button class="btn primary" id="actShare" type="button"><svg><use href="#i-mail"/></svg>Invia con l’app email</button>
+    <button class="btn" id="actSave" type="button"><svg><use href="#i-pdf"/></svg>Salva il PDF</button>
+    <a class="btn" id="actMail"><svg><use href="#i-mail"/></svg>Apri email al datore</a>
+    <button class="btn ghost" id="actDone" type="button">Fatto: segna come inviata</button>
+  </div>
+  <p class="note" id="sheetNote"></p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- storage (localStorage con ripiego in memoria) ---------- */
+var NS = "dich40.v1.";
+var mem = {};
+var store = {
+  get: function(k, d){ try{ var v = localStorage.getItem(NS+k); if(v!=null) return JSON.parse(v); }catch(e){} return (k in mem) ? mem[k] : d; },
+  set: function(k, v){ mem[k] = v; try{ localStorage.setItem(NS+k, JSON.stringify(v)); return true; }catch(e){ return false; } },
+  del: function(k){ delete mem[k]; try{ localStorage.removeItem(NS+k); }catch(e){} }
+};
+
+function blankPerson(){ return {chi:"io", grado:"", nome:"", cognome:"", cf:""}; }
+var DEF = {
+  datore:{rs:"", piva:"", email:""},
+  dip:{cognome:"", nome:"", nascita:"", luogo:"", prov:"", cf:""},
+  immobile: blankPerson(), spese: blankPerson(),
+  intest:{tipo:"no", denom:"", cfCond:"", cognome:"", nome:"", cf:""},
+  promemoria:{giorno:"5", ora:"09:00"},
+  setupDone:false
+};
+function merge(a,b){ var o = JSON.parse(JSON.stringify(a)); if(b) for(var k in b){ if(o[k] && typeof o[k]==="object" && typeof b[k]==="object") o[k]=merge(o[k], b[k]); else o[k]=b[k]; } return o; }
+var P = merge(DEF, store.get("profile", null));
+function saveP(){ store.set("profile", P); }
+
+function curMonth(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+var D = store.get("draft", null) || {mese:curMonth(), bills:[]};
+function saveD(){ store.set("draft", D); }
+var H = store.get("history", []);
+
+/* ---------- utility ---------- */
+var $ = function(s, r){ return (r||document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+function getPath(o, p){ return p.split(".").reduce(function(a,k){ return a ? a[k] : undefined; }, o); }
+function setPath(o, p, v){ var ks=p.split("."), last=ks.pop(); var t=ks.reduce(function(a,k){ return a[k]; }, o); t[last]=v; }
+var toastT;
+function toast(msg, ms){ var t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove("on"); }, ms||3200); }
+function monthName(m){ var p=m.split("-"); var t=new Date(+p[0], +p[1]-1, 1).toLocaleDateString("it-IT",{month:"long", year:"numeric"}); return t.charAt(0).toUpperCase()+t.slice(1); }
+function fmtDate(s){ if(!s) return ""; var p=s.split("-"); return p[2]+"/"+p[1]+"/"+p[0]; }
+function parseEuro(s){ if(!s) return 0; s=String(s).replace(/[€\s]/g,""); if(s.indexOf(",")>-1) s=s.replace(/\./g,"").replace(",","."); var n=parseFloat(s); return isFinite(n)?n:0; }
+function euro(n){ return "€ " + n.toLocaleString("it-IT",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+var CF_RE = /^[A-Z]{6}[0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$/;
+var TIPI = { idrico:{label:"Acqua", full:"servizio idrico", icon:"i-drop"}, elettrica:{label:"Luce", full:"energia elettrica", icon:"i-bolt"}, gas:{label:"Gas", full:"gas naturale", icon:"i-flame"} };
+var REL = [ ["io","Io"], ["coniuge","Coniuge"], ["figlio","Figlio/a"], ["altro","Altro familiare"] ];
+
+function personOf(sec){
+  var x = P[sec];
+  if(x.chi==="io") return {nome:P.dip.nome, cognome:P.dip.cognome, cf:P.dip.cf};
+  return {nome:x.nome, cognome:x.cognome, cf:x.cf};
+}
+function defaultIntestatario(){
+  if(P.intest.tipo==="condominio" && P.intest.denom) return "Condominio " + P.intest.denom;
+  if(P.intest.tipo==="locatore" && (P.intest.cognome||P.intest.nome)) return (P.intest.nome+" "+P.intest.cognome).trim();
+  var s=personOf("spese"); return (s.nome+" "+s.cognome).trim();
+}
+
+/* ---------- setup: persone (immobile / spese) ---------- */
+function buildPersonGroups(){
+  ["immobile","spese"].forEach(function(sec){
+    var chips = $('[data-group="'+sec+'"]');
+    chips.innerHTML = REL.map(function(r){ return '<label class="chip"><input type="radio" name="'+sec+'" value="'+r[0]+'"><span>'+r[1]+'</span></label>'; }).join("");
+    var box = $('[data-person="'+sec+'"]');
+    box.innerHTML =
+      '<label class="f reveal-grado">Grado di parentela<input class="in" data-bind="'+sec+'.grado" placeholder="es. padre, sorella, nuora"></label>'+
+      '<div class="row2"><label class="f">Cognome<input class="in" data-bind="'+sec+'.cognome"></label><label class="f">Nome<input class="in" data-bind="'+sec+'.nome"></label></div>'+
+      '<label class="f">Codice fiscale<input class="in upper" data-bind="'+sec+'.cf" data-cf maxlength="16" autocapitalize="characters" spellcheck="false"></label>';
+    if(sec==="spese"){ box.insertAdjacentHTML("afterbegin", '<button type="button" class="btn ghost" data-copy-imm style="align-self:flex-start">Uguale a chi ha la casa</button>'); }
+    $$('input[name="'+sec+'"]').forEach(function(r){
+      r.checked = (r.value===P[sec].chi);
+      r.addEventListener("change", function(){ P[sec].chi=r.value; saveP(); syncPerson(sec); });
+    });
+    syncPerson(sec);
+  });
+  $("[data-copy-imm]").addEventListener("click", function(){
+    var i=P.immobile; ["chi","grado","nome","cognome","cf"].forEach(function(k){ P.spese[k]=i[k]; });
+    saveP(); $$('input[name="spese"]').forEach(function(r){ r.checked = r.value===P.spese.chi; }); bindAll(); syncPerson("spese");
+  });
+}
+function syncPerson(sec){
+  var box=$('[data-person="'+sec+'"]'), chi=P[sec].chi;
+  box.classList.toggle("on", chi!=="io");
+  box.querySelector(".reveal-grado").style.display = chi==="altro" ? "flex" : "none";
+  var cb=box.querySelector("[data-copy-imm]"); if(cb) cb.style.display = P.immobile.chi!=="io" ? "inline-flex":"none";
+}
+function buildIntest(){
+  $$('input[name="intest"]').forEach(function(r){
+    r.checked = r.value===P.intest.tipo;
+    r.addEventListener("change", function(){ P.intest.tipo=r.value; saveP(); syncIntest(); });
+  });
+  syncIntest();
+}
+function syncIntest(){ $$("[data-intest]").forEach(function(b){ b.classList.toggle("on", b.dataset.intest===P.intest.tipo); }); }
+
+/* ---------- binding generico ---------- */
+function bindAll(){
+  $$("[data-bind]").forEach(function(el){
+    var p=el.dataset.bind, v=getPath(P,p);
+    el.value = v==null ? "" : v;
+    if(!el._bound){
+      el._bound=true;
+      el.addEventListener("input", function(){
+        var val = el.value;
+        if(el.classList.contains("upper")) val = val.toUpperCase().replace(/\s/g,"");
+        setPath(P, p, val); saveP();
+        if(el.classList.contains("bad")) validateField(el);
+        if(p.indexOf("promemoria")===0) updateReminderLinks();
+      });
+      el.addEventListener("blur", function(){ if(el.classList.contains("upper")) el.value = el.value.toUpperCase().replace(/\s/g,""); validateField(el, true); });
+    }
+  });
+}
+function validateField(el, soft){
+  var v=el.value.trim(), ok=true;
+  if(el.hasAttribute("data-req") && !v) ok=false;
+  if(ok && v && el.hasAttribute("data-cf")) ok = CF_RE.test(v.toUpperCase());
+  if(ok && v && el.type==="email") ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  if(ok && v && el.dataset.bind==="datore.piva") ok = /^(IT)?\d{11}$/i.test(v.replace(/\s/g,""));
+  if(soft && !v) return true;
+  el.classList.toggle("bad", !ok);
+  return ok;
+}
+
+/* ---------- documento d'identità ---------- */
+function compressImage(file, maxSide, q){
+  return new Promise(function(res, rej){
+    var url=URL.createObjectURL(file), img=new Image();
+    img.onload=function(){
+      var s=Math.min(1, maxSide/Math.max(img.width, img.height));
+      var c=document.createElement("canvas"); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+      var x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", q));
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); rej(new Error("img")); };
+    img.src=url;
+  });
+}
+function renderDocs(){
+  [["docF","#slotF","Fronte"],["docB","#slotB","Retro"]].forEach(function(d){
+    var slot=$(d[1]), data=store.get(d[0], null);
+    var old=slot.querySelector("img"); if(old) old.remove(); var t=slot.querySelector(".tag"); if(t) t.remove();
+    slot.classList.toggle("has", !!data);
+    slot.querySelector("span").style.visibility = data ? "hidden" : "visible";
+    if(data){ var im=new Image(); im.src=data; im.alt="Documento: "+d[2].toLowerCase(); slot.appendChild(im); slot.insertAdjacentHTML("beforeend",'<span class="tag">'+d[2]+' · tocca per cambiare</span>'); }
+  });
+}
+$$("[data-doc]").forEach(function(inp){
+  inp.addEventListener("change", function(){
+    var f=inp.files && inp.files[0]; if(!f) return;
+    compressImage(f, 1500, 0.72).then(function(data){
+      if(!store.set(inp.dataset.doc, data)) toast("Foto tenuta solo per questa sessione: la memoria del browser non permette di salvarla.");
+      renderDocs();
+    }).catch(function(){ toast("Formato immagine non letto. Riprova scattando una foto."); });
+    inp.value="";
+  });
+});
+
+/* ---------- promemoria ---------- */
+(function(){ var s=$("#remDay"); for(var i=1;i<=28;i++){ s.insertAdjacentHTML("beforeend",'<option value="'+i+'">'+i+'</option>'); } })();
+function nextOccurrence(){
+  var day=+P.promemoria.giorno||5, hm=(P.promemoria.ora||"09:00").split(":"), now=new Date();
+  var d=new Date(now.getFullYear(), now.getMonth(), day, +hm[0], +hm[1]);
+  if(d<=now) d=new Date(now.getFullYear(), now.getMonth()+1, day, +hm[0], +hm[1]);
+  return d;
+}
+function stamp(d){ function z(n){ return String(n).padStart(2,"0"); } return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+"T"+z(d.getHours())+z(d.getMinutes())+"00"; }
+var REM_TITLE="Inviare dichiarazione utenze al datore di lavoro";
+var REM_TEXT="Apri l’app Dichiarazione utenze, aggiungi le bollette del mese, firma e invia.";
+function updateReminderLinks(){
+  var s=nextOccurrence(), e=new Date(s.getTime()+15*60000);
+  var u="https://calendar.google.com/calendar/render?action=TEMPLATE"+
+    "&text="+encodeURIComponent(REM_TITLE)+
+    "&details="+encodeURIComponent(REM_TEXT)+
+    "&dates="+stamp(s)+"/"+stamp(e)+
+    "&ctz=Europe/Rome"+
+    "&recur="+encodeURIComponent("RRULE:FREQ=MONTHLY;BYMONTHDAY="+(+P.promemoria.giorno||5));
+  $("#remGoogle").href=u;
+}
+function buildIcs(){
+  var s=nextOccurrence(), now=new Date();
+  function zU(d){ return d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,""); }
+  return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Dichiarazione utenze//IT","CALSCALE:GREGORIAN","METHOD:PUBLISH",
+    "BEGIN:VEVENT","UID:dich-utenze-"+uid()+"@promemoria","DTSTAMP:"+zU(now),
+    "DTSTART:"+stamp(s),"DURATION:PT15M","RRULE:FREQ=MONTHLY;BYMONTHDAY="+(+P.promemoria.giorno||5),
+    "SUMMARY:"+REM_TITLE,"DESCRIPTION:"+REM_TEXT.replace(/,/g,"\\,"),
+    "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+REM_TITLE,"TRIGGER:PT0M","END:VALARM",
+    "END:VEVENT","END:VCALENDAR",""].join("\r\n");
+}
+$("#remGoogle").addEventListener("click", function(){ P.promemoria.impostato=true; saveP(); });
+$("#remIcs").addEventListener("click", function(){
+  var blob=new Blob([buildIcs()],{type:"text/calendar;charset=utf-8"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="promemoria-dichiarazione-utenze.ics";
+  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  P.promemoria.impostato=true; saveP();
+  toast("Se il calendario non si apre, usa il pulsante Google Calendar.", 4500);
+});
+
+/* ---------- wizard ---------- */
+var step=1, editMode=false;
+function showStep(n){
+  step=n;
+  $$(".step").forEach(function(s){ s.classList.toggle("on", +s.dataset.step===n); });
+  $$("#stepsBar i").forEach(function(b,i){ b.classList.toggle("on", i<n); });
+  $("#wizBack").style.visibility = n===1 ? "hidden" : "visible";
+  $("#wizNext").textContent = n===5 ? "Fine" : (n===4 && !store.get("docF",null) ? "Avanti senza foto" : "Avanti");
+  window.scrollTo(0,0);
+}
+function stepValid(n){
+  var ok=true, first=null;
+  $$('.step[data-step="'+n+'"] [data-bind]').forEach(function(el){
+    if(el.offsetParent===null) return;
+    var req = el.hasAttribute("data-req") || (el.closest(".reveal.on") && !el.closest(".reveal-grado") && el.dataset.bind.match(/\.(nome|cognome)$/));
+    if(req && !el.value.trim()){ el.classList.add("bad"); ok=false; first=first||el; return; }
+    if(!validateField(el, true)){ ok=false; first=first||el; }
+  });
+  if(!ok){ toast("Controlla i campi evidenziati."); first && first.focus(); }
+  return ok;
+}
+$("#wizNext").addEventListener("click", function(){
+  if(!stepValid(step)) return;
+  if(step<5){ showStep(step+1); return; }
+  P.setupDone=true; saveP(); go("home");
+  if(!editMode) toast("Configurazione salvata. Da ora in poi aggiungi solo le bollette e firmi.", 4000);
+});
+$("#wizBack").addEventListener("click", function(){ if(step>1) showStep(step-1); });
+$("#setupClose").addEventListener("click", function(){ go("home"); });
+$("#openSettings").addEventListener("click", function(){ editMode=true; go("setup"); });
+
+function go(view){
+  $("#setup").classList.toggle("hidden", view!=="setup");
+  $("#home").classList.toggle("hidden", view!=="home");
+  $("#dock").classList.toggle("hidden", view!=="home");
+  if(view==="setup"){
+    $("#setupKicker").textContent = editMode ? "Impostazioni" : "Prima configurazione";
+    $("#setupTitle").textContent = editMode ? "Dati salvati" : "Lo fai una volta sola";
+    $("#setupClose").classList.toggle("hidden", !editMode);
+    bindAll(); renderDocs(); updateReminderLinks(); showStep(1);
+  } else { renderHome(); requestAnimationFrame(sizeSig); }
+  window.scrollTo(0,0);
+}
+
+/* ---------- home ---------- */
+function renderHome(){
+  $("#monthLabel").textContent = monthName(D.mese);
+  $("#monthInput").value = D.mese;
+  var sent = H.filter(function(h){ return h.mese===D.mese; })[0];
+  var sl=$("#statusLine");
+  if(sent){ sl.textContent="Già inviata il "+sent.il+". Puoi inviarne un’altra se serve."; sl.className="status ok"; }
+  else { sl.textContent = "Da inviare a "+(P.datore.rs||"datore di lavoro"); sl.className="status"; }
+  renderBills(); renderHistory();
+}
+$("#monthInput").addEventListener("change", function(e){ if(e.target.value){ D.mese=e.target.value; saveD(); renderHome(); } });
+
+function billTpl(b){
+  var t=TIPI[b.tipo];
+  var el=document.createElement("article");
+  el.className="bill t-"+b.tipo; el.dataset.id=b.id;
+  el.innerHTML =
+    '<div class="bill-head"><span class="glyph"><svg><use href="#'+t.icon+'"/></svg></span>'+
+    '<div class="bill-title"><b>'+t.label+'</b><span>'+t.full+'</span></div>'+
+    '<label class="amount"><span class="hidden">Importo</span><input class="in" data-k="importo" inputmode="decimal" placeholder="0,00" aria-label="Importo in euro"></label>'+
+    '<button class="del" type="button" aria-label="Rimuovi bolletta"><svg><use href="#i-x"/></svg></button></div>'+
+    '<div class="bill-body">'+
+      '<label class="f">N. bolletta<input class="in" data-k="numero" autocomplete="off"></label>'+
+      '<label class="f">Data bolletta<input class="in" type="date" data-k="data"></label>'+
+      '<label class="f">Consumi dal<input class="in" type="date" data-k="dal"></label>'+
+      '<label class="f">al<input class="in" type="date" data-k="al"></label>'+
+      '<label class="f">Pagata il<input class="in" type="date" data-k="pagData"></label>'+
+      '<label class="f">Modalità<select class="in" data-k="pagMod"><option>Addebito su conto</option><option>Bonifico</option><option>Bollettino / ricevuta</option><option>Carta</option></select></label>'+
+      '<details class="more"><summary>Intestatario e chi ha pagato</summary><div class="grid">'+
+        '<label class="f full" style="grid-column:1/-1">Intestatario bolletta<input class="in" data-k="intest"></label>'+
+        '<label class="f">Ordinante: nome<input class="in" data-k="ordNome"></label>'+
+        '<label class="f">Ordinante: cognome<input class="in" data-k="ordCognome"></label>'+
+        '<label class="f" style="grid-column:1/-1">Ordinante: codice fiscale<input class="in upper" data-k="ordCf" maxlength="16" autocapitalize="characters" spellcheck="false"></label>'+
+      '</div></details>'+
+    '</div>';
+  $$("[data-k]", el).forEach(function(inp){
+    var k=inp.dataset.k; inp.value = b[k]||(inp.tagName==="SELECT"?inp.options[0].value:"");
+    inp.addEventListener("input", function(){
+      var v=inp.value; if(inp.classList.contains("upper")) v=v.toUpperCase().replace(/\s/g,"");
+      b[k]=v; saveD(); if(k==="importo") renderTotal();
+    });
+    if(inp.tagName==="SELECT") inp.addEventListener("change", function(){ b[k]=inp.value; saveD(); });
+  });
+  $(".del", el).addEventListener("click", function(){
+    D.bills=D.bills.filter(function(x){ return x.id!==b.id; }); saveD(); renderBills();
+  });
+  return el;
+}
+function renderBills(){
+  var box=$("#bills"); box.innerHTML="";
+  D.bills.forEach(function(b){ box.appendChild(billTpl(b)); });
+  $("#billsEmpty").classList.toggle("hidden", D.bills.length>0);
+  $("#billCount").textContent = D.bills.length ? D.bills.length+(D.bills.length===1?" bolletta":" bollette") : "";
+  renderTotal();
+}
+function renderTotal(){
+  var t=D.bills.reduce(function(a,b){ return a+parseEuro(b.importo); },0);
+  $("#totalVal").textContent=euro(t);
+  $("#totalRow").classList.toggle("hidden", !D.bills.length);
+}
+$$("[data-add]").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    var s=personOf("spese");
+    var last = D.bills.slice().reverse().filter(function(x){ return x.tipo===btn.dataset.add; })[0];
+    var b={ id:uid(), tipo:btn.dataset.add, numero:"", data:"", importo:"", dal:"", al:"", pagData:"",
+      pagMod: last ? last.pagMod : "Addebito su conto",
+      intest: last ? last.intest : defaultIntestatario(),
+      ordNome:s.nome, ordCognome:s.cognome, ordCf:s.cf };
+    D.bills.push(b); saveD(); renderBills();
+    var card=$('.bill[data-id="'+b.id+'"]'); card.scrollIntoView({behavior:"smooth", block:"center"});
+    setTimeout(function(){ $('[data-k="importo"]', card).focus(); }, 350);
+  });
+});
+function renderHistory(){
+  var ul=$("#history");
+  $("#histBlock").classList.toggle("hidden", !H.length);
+  ul.innerHTML = H.slice(-6).reverse().map(function(h){ return '<li><span>'+monthName(h.mese)+'</span><span>'+h.totale+' · '+h.il+'</span></li>'; }).join("");
+}
+
+/* ---------- firma (tratto con tempi e pressione) ---------- */
+var cv=$("#sig"), ctx=cv.getContext("2d"), strokes=[], cur=null, sigStart=0;
+function sizeSig(){
+  var r=cv.getBoundingClientRect(); if(!r.width) return;
+  var dpr=Math.min(window.devicePixelRatio||1, 3);
+  cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0); redraw();
+}
+function inkColor(){ return getComputedStyle(document.documentElement).getPropertyValue("--ink").trim()||"#16202C"; }
+function drawStroke(c, s, w, h, color, scale){
+  c.strokeStyle=color; c.lineCap="round"; c.lineJoin="round";
+  for(var i=1;i<s.length;i++){
+    var a=s[i-1], b=s[i], pr=(b.p>0 && b.p!==0.5) ? b.p : 0.5;
+    c.lineWidth=(1.4+pr*2.6)*(scale||1);
+    c.beginPath(); c.moveTo(a.x*w, a.y*h); c.lineTo(b.x*w, b.y*h); c.stroke();
+  }
+  if(s.length===1){ c.fillStyle=color; c.beginPath(); c.arc(s[0].x*w, s[0].y*h, 1.8*(scale||1), 0, 7); c.fill(); }
+}
+function redraw(){
+  var r=cv.getBoundingClientRect(); ctx.clearRect(0,0,r.width,r.height);
+  var col=inkColor(); strokes.forEach(function(s){ drawStroke(ctx, s, r.width, r.height, col); });
+  $("#sigph").style.visibility = strokes.length ? "hidden" : "visible";
+}
+function pt(e){ var r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width, y:(e.clientY-r.top)/r.height, t:Math.round(performance.now()-sigStart), p:+(e.pressure||0).toFixed(3)}; }
+cv.addEventListener("pointerdown", function(e){ e.preventDefault(); if(!strokes.length) sigStart=performance.now(); cv.setPointerCapture(e.pointerId); cur=[pt(e)]; strokes.push(cur); redraw(); });
+cv.addEventListener("pointermove", function(e){ if(!cur) return; e.preventDefault(); var evs=e.getCoalescedEvents?e.getCoalescedEvents():[e]; evs.forEach(function(ev){ cur.push(pt(ev)); }); redraw(); });
+function endStroke(){ cur=null; }
+cv.addEventListener("pointerup", endStroke); cv.addEventListener("pointercancel", endStroke);
+$("#sigClear").addEventListener("click", function(){ strokes=[]; redraw(); });
+window.addEventListener("resize", function(){ clearTimeout(window._rz); window._rz=setTimeout(sizeSig, 120); });
+function signaturePng(){
+  var W=900, Hh=300, c=document.createElement("canvas"); c.width=W; c.height=Hh;
+  var x=c.getContext("2d"); strokes.forEach(function(s){ drawStroke(x, s, W, Hh, "#14307A", 2.2); });
+  return c.toDataURL("image/png");
+}
+
+/* ---------- PDF ---------- */
+function ensureJsPdf(){
+  if(window.jspdf) return Promise.resolve();
+  return new Promise(function(res, rej){
+    var s=document.createElement("script"); s.src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+    s.onload=function(){ window.jspdf ? res() : rej(); }; s.onerror=rej; document.head.appendChild(s);
+  });
+}
+function sha256(str){
+  try{
+    if(!(window.crypto && crypto.subtle)) return Promise.resolve("");
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+    }).catch(function(){ return ""; });
+  }catch(e){ return Promise.resolve(""); }
+}
+function clean(s){ return String(s==null?"":s).replace(/[’‘]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,"-").replace(/…/g,"..."); }
+
+function buildPdf(){
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({unit:"mm", format:"a4"});
+  var L=18, R=192, W=R-L, y=18, LH=4.6, PB=280;
+  var anno=D.mese.slice(0,4), today=new Date();
+  var oggi=String(today.getDate()).padStart(2,"0")+"/"+String(today.getMonth()+1).padStart(2,"0")+"/"+today.getFullYear();
+  var BL="................";
+
+  function need(h){ if(y+h>PB){ doc.addPage(); y=18; } }
+  function text(t, o){
+    o=o||{}; doc.setFont("helvetica", o.bold?"bold":(o.italic?"italic":"normal")); doc.setFontSize(o.size||9.5);
+    var x=L+(o.indent||0), w=W-(o.indent||0);
+    var lines=doc.splitTextToSize(clean(t), w), lh=o.lh||LH;
+    lines.forEach(function(ln){ need(lh); doc.text(ln, o.center? (L+W/2) : x, y, o.center?{align:"center"}:undefined); y+=lh; });
+    y+=(o.after==null?1.2:o.after);
+  }
+  function box(x, yy, on){ doc.setLineWidth(0.3); doc.rect(x, yy-2.8, 3.2, 3.2); if(on){ doc.setLineWidth(0.5); doc.line(x+0.5,yy-2.3,x+2.7,yy-0.1); doc.line(x+2.7,yy-2.3,x+0.5,yy-0.1); } }
+  function opt(on, t, indent){
+    doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+    var x=L+(indent||6), lines=doc.splitTextToSize(clean(t), W-(indent||6)-6);
+    need(LH*lines.length+1); box(x, y, on);
+    lines.forEach(function(ln,i){ doc.text(ln, x+5.5, y); y+=LH; }); y+=0.8;
+  }
+  function pdata(sec, rel){
+    var x=P[sec], on=(x.chi===rel);
+    var n=on?x.nome:BL, c=on?x.cognome:BL, cf=on?x.cf:BL;
+    return "nome "+(n||BL)+"  cognome "+(c||BL)+"  c.f. "+(cf||BL);
+  }
+  function personBlock(sec, withGradoLabel){
+    var x=P[sec];
+    opt(x.chi==="io", "sottoscritto");
+    opt(x.chi==="coniuge", "moglie/marito: "+pdata(sec,"coniuge"));
+    opt(x.chi==="figlio", "figlio/a: "+pdata(sec,"figlio"));
+    opt(x.chi==="altro", "altro mio familiare ai sensi dell'art.12 del TUIR con il seguente grado di cui all'art.433 del codice civile: fratello/sorella/padre/madre/genero/nuora/altro indicare "+(x.chi==="altro" && x.grado ? x.grado : BL)+"  "+pdata(sec,"altro"));
+  }
+  function num(n, t, o){
+    o=o||{}; doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+    var lines=doc.splitTextToSize(clean(t), W-7); need(LH*Math.min(lines.length,2));
+    doc.text(n+".", L, y);
+    lines.forEach(function(ln){ need(LH); doc.text(ln, L+7, y); y+=LH; }); y+=1.4;
+  }
+
+  // Intestazione
+  text("DICHIARAZIONE SOSTITUTIVA ATTO DI NOTORIETA' DPR 445/2000", {bold:true, size:12, center:true, after:0.5});
+  text("per applicazione dell'art. 40 legge nr. 48/2023", {bold:true, size:10.5, center:true, after:5});
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+  var hx=115; doc.text("Alla c.a. Datore di Lavoro", hx, y); y+=LH;
+  doc.setFont("helvetica","bold"); doc.splitTextToSize(clean(P.datore.rs), R-hx).forEach(function(l){ doc.text(l, hx, y); y+=LH; });
+  doc.setFont("helvetica","normal"); doc.text("P.IVA "+clean(P.datore.piva), hx, y); y+=LH+4;
+
+  text("Oggetto: attestazione per rimborso utenze domestiche per art. 40 legge nr. 48/2023.", {bold:true, after:3});
+  text("Io sottoscritto/a Cognome "+P.dip.cognome.toUpperCase()+"  Nome "+P.dip.nome.toUpperCase()+
+       "  nato/a il "+fmtDate(P.dip.nascita)+" a "+P.dip.luogo+" prov. "+P.dip.prov.toUpperCase()+"  CF "+P.dip.cf.toUpperCase()+
+       ", in qualità di lavoratore/lavoratrice dipendente, in forza in data odierna, presso il datore di lavoro sopra indicato", {after:3});
+
+  text("PREMESSO E CONOSCIUTO", {bold:true, center:true, after:1.5});
+  ["l'art.40 della Legge n.48/2023;","la circolare dell'Agenzia delle Entrate nr. 35/E del 4 Novembre 2022;","gli articoli 12 e 51 del TUIR come vigenti nel tempo;","l'art.433 del codice civile;",
+   "che il datore di lavoro mi ha comunicato che intende riconoscere un fondo per il rimborso per le spese sostenute per utenze domestiche nel periodo di imposta "+anno+";"]
+   .forEach(function(t){ text("-  "+t, {indent:2, after:0.4}); });
+  y+=2.5;
+  text("DICHIARO E ATTESTO", {bold:true, center:true, after:1.5});
+
+  num(1, "di essere consapevole delle sanzioni penali richiamate dall'art. 76 del D.P.R. n. 445/2000 per le ipotesi di falsità in atti e dichiarazioni mendaci e che tale ipotesi saranno anche oggetto di azione disciplinare da parte del datore di lavoro e relativo risarcimento per ogni danno procurato al medesimo;");
+  num(2, "che sono consapevole che tutta la documentazione qui attestata dovrà essere conservata nei termini di legge e mi espone alle verifiche da parte dell'Amministrazione Finanziaria competente;");
+  num(3, "che l'immobile ad uso abitativo a cui si riferiscono le utenze domestiche da rimborsare è detenuto in base ad un idoneo titolo da:");
+  personBlock("immobile"); y+=1;
+  num(4, "che le spese relative utenze domestiche in oggetto riferite all'immobile di cui al punto precedente sono state effettivamente sostenute da:");
+  personBlock("spese"); y+=1;
+  num(5, "[n.b. compilare questo punto solo se ricorre] che le spese per le utenze domestiche in oggetto:");
+  var it=P.intest;
+  opt(it.tipo==="condominio", "sono intestate al condominio "+(it.tipo==="condominio"&&it.denom?it.denom:BL)+" c.f. "+(it.tipo==="condominio"&&it.cfCond?it.cfCond:BL)+" e ripartite tra i condomini in forma analitica e non forfettaria come dal documento di riparto rilasciato dall'amministratore (o altro ....);");
+  opt(it.tipo==="locatore", "sono intestate al locatore-proprietario cognome "+(it.tipo==="locatore"&&it.cognome?it.cognome:BL)+" nome "+(it.tipo==="locatore"&&it.nome?it.nome:BL)+" c.f. "+(it.tipo==="locatore"&&it.cf?it.cf:BL)+", e addebitate al \"locatario\" come espressamente stabilito nel contratto di locazione e sono state effettivamente sostenute dal soggetto di cui al punto 4.");
+  y+=1;
+  num(6, "che le bollette e i pagamenti effettivamente sostenuti per cui il datore di lavoro potrà operare il rimborso sono i seguenti come riepilogati in via sintetica nella seguente tabella.");
+
+  // Tabella
+  var cols=[{h:"Tipologia utenza",w:21},{h:"Numero fattura/ bolletta",w:22},{h:"Data bolletta",w:17},{h:"Nominativo intestatario",w:27},{h:"Importo",w:18},{h:"Periodo consumo",w:23},{h:"Estremi del pagamento (bonifico/ricevuta)",w:46}];
+  var FS=7.6, CLH=3.3, PAD=1.6;
+  function rowH(cells, bold){ doc.setFont("helvetica", bold?"bold":"normal"); doc.setFontSize(FS); var m=1; cells.forEach(function(c,i){ m=Math.max(m, doc.splitTextToSize(clean(c), cols[i].w-2*PAD).length); }); return m*CLH+2*PAD; }
+  function drawRow(cells, header, fillRow){
+    var h=rowH(cells, header);
+    if(y+h>PB){ doc.addPage(); y=18; if(!header) drawRow(cols.map(function(c){return c.h;}), true); }
+    var x=L;
+    cells.forEach(function(c,i){
+      if(header||fillRow){ doc.setFillColor(header?232:245, header?236:247, header?241:249); doc.rect(x,y,cols[i].w,h,"F"); }
+      doc.setDrawColor(150); doc.setLineWidth(0.2); doc.rect(x,y,cols[i].w,h);
+      doc.setFont("helvetica", header||fillRow?"bold":"normal"); doc.setFontSize(FS); doc.setTextColor(20);
+      var ls=doc.splitTextToSize(clean(c), cols[i].w-2*PAD);
+      ls.forEach(function(l,j){ var tx = (i===4 && !header) ? x+cols[i].w-PAD : x+PAD; doc.text(l, tx, y+PAD+2.5+j*CLH, (i===4&&!header)?{align:"right"}:undefined); });
+      x+=cols[i].w;
+    });
+    y+=h;
+  }
+  y+=1; drawRow(cols.map(function(c){return c.h;}), true);
+  var tot=0;
+  D.bills.forEach(function(b){
+    var imp=parseEuro(b.importo); tot+=imp;
+    var ord=[b.ordNome,b.ordCognome].filter(Boolean).join(" ");
+    drawRow([TIPI[b.tipo].full, b.numero||"", fmtDate(b.data), b.intest||"", euro(imp),
+      "dal "+(fmtDate(b.dal)||"__/__/"+anno)+" al "+(fmtDate(b.al)||"__/__/"+anno),
+      "data: "+(fmtDate(b.pagData)||"__/__/____")+" ("+(b.pagMod||"")+")\nordinante: "+(ord||BL)+"\nC.F. "+((b.ordCf||"").toUpperCase()||BL)]);
+  });
+  (function(){ var h=rowH(["x"]); if(y+h>PB){ doc.addPage(); y=18; }
+    var wL=cols.slice(0,4).reduce(function(a,c){return a+c.w;},0);
+    doc.setFillColor(232,236,241); doc.rect(L,y,wL+cols[4].w,h,"F"); doc.setDrawColor(150); doc.rect(L,y,wL,h); doc.rect(L+wL,y,cols[4].w,h);
+    doc.setFont("helvetica","bold"); doc.setFontSize(FS); doc.text("TOTALE", L+wL-PAD, y+PAD+2.5, {align:"right"}); doc.text(euro(tot), L+wL+cols[4].w-PAD, y+PAD+2.5, {align:"right"}); y+=h; })();
+  y+=6;
+
+  num(7, "che le fatture/bollette descritte nella tabella del punto precedente non sono già state e non saranno oggetto di richiesta di rimborso per l'anno fiscale "+anno+", totale o parziale, non solo presso il datore di lavoro a cui rendo la presente dichiarazione ma anche presso altri e che parimenti nel caso le stesse spese siano state sostenute da familiari qui indicati i medesimi non ne hanno ottenuto e non otterranno il rimborso totale o parziale al proprio datore.");
+  y+=1;
+  text("La presente attestazione, corredata dalla fotocopia del mio documento d'identità in corso di validità, viene consegnata al datore di lavoro indicato per la finalità di cui alla normativa e dalla prassi amministrativa richiamata in premessa.", {after:2});
+  text("Ai sensi della normativa privacy vigente, Regolamento UE 2016/679, autorizzo il mio datore di lavoro a trattare i dati forniti con le presenti dichiarazioni sostitutive, in forma cartacea o informatica, ai soli fini della normativa in oggetto.", {after:5});
+
+  need(42);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5);
+  doc.text("In fede", L, y); doc.text(oggi, L, y+6);
+  doc.setFont("helvetica","bolditalic"); doc.text("Firma il dipendente dichiarante", 150, y, {align:"center"});
+  doc.addImage(signaturePng(), "PNG", 117, y+1.5, 66, 22);
+  doc.setDrawColor(120); doc.setLineWidth(0.25); doc.line(118, y+23, 182, y+23);
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.text(clean(P.dip.nome+" "+P.dip.cognome), 150, y+27, {align:"center"});
+  y+=32;
+
+  // Documento identità
+  var docF=store.get("docF",null), docB=store.get("docB",null);
+  if(docF||docB){
+    doc.addPage(); y=18;
+    text("Copia del documento d'identità di "+P.dip.cognome.toUpperCase()+" "+P.dip.nome.toUpperCase(), {bold:true, size:11, after:4});
+    [docF,docB].forEach(function(img){
+      if(!img) return;
+      var p=doc.getImageProperties(img), maxW=130, maxH=100;
+      var s=Math.min(maxW/p.width, maxH/p.height), w=p.width*s, h=p.height*s;
+      need(h+6); doc.addImage(img, "JPEG", L+(W-w)/2, y, w, h); y+=h+8;
+    });
+  }
+  return {doc:doc, tot:tot, oggi:oggi};
+}
+
+var lastPdf=null;
+function checkReady(){
+  var miss=[];
+  if(!P.datore.email) miss.push("email del datore");
+  if(!P.dip.cf || !P.dip.cognome) miss.push("i tuoi dati");
+  if(!D.bills.length) miss.push("almeno una bolletta");
+  D.bills.forEach(function(b){ if(!parseEuro(b.importo)) miss.push("l’importo di "+TIPI[b.tipo].label.toLowerCase()); });
+  if(!strokes.length) miss.push("la firma");
+  return miss.filter(function(v,i,a){ return a.indexOf(v)===i; });
+}
+$("#makePdf").addEventListener("click", function(){
+  var miss=checkReady();
+  if(miss.length){ toast("Manca: "+miss.join(", ")+".", 4000); if(miss.indexOf("la firma")>-1 && miss.length===1) $("#sigbox").scrollIntoView({behavior:"smooth", block:"center"}); return; }
+  var btn=$("#makePdf"); btn.disabled=true; btn.lastChild.textContent="Creo il PDF…";
+  ensureJsPdf().then(function(){
+    var r=buildPdf();
+    var payload=JSON.stringify({d:P.dip, datore:P.datore, mese:D.mese, bills:D.bills, firma:strokes, quando:new Date().toISOString()});
+    return sha256(payload).then(function(h){
+      var n=r.doc.getNumberOfPages();
+      for(var i=1;i<=n;i++){
+        r.doc.setPage(i); r.doc.setFont("helvetica","normal"); r.doc.setFontSize(7); r.doc.setTextColor(120);
+        r.doc.text("Pag. "+i+" di "+n, 192, 290, {align:"right"});
+        if(h) r.doc.text("Firma grafica acquisita il "+r.oggi+" alle "+new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})+" - impronta SHA-256: "+h, 18, 290, {maxWidth:150});
+      }
+      var name="Dichiarazione_utenze_"+D.mese+"_"+(P.dip.cognome||"dipendente").replace(/[^\w]+/g,"_")+".pdf";
+      var blob=r.doc.output("blob");
+      lastPdf={blob:blob, name:name, tot:euro(r.tot), hash:h};
+      window.__dich={pdf:lastPdf};
+      openSheet();
+    });
+  }).catch(function(e){ console.error(e); toast("Non riesco a creare il PDF: controlla la connessione e riprova.", 4500); })
+  .then(function(){ btn.disabled=false; btn.lastChild.textContent="Crea PDF e invia"; });
+});
+
+/* ---------- invio ---------- */
+var downloadsCap=null;
+try{ if(window.claude && window.claude.use) window.claude.use("downloads").then(function(d){ downloadsCap=d; }).catch(function(){}); }catch(e){}
+
+function mailParts(){
+  var subj="Dichiarazione utenze domestiche - "+monthName(D.mese)+" - "+P.dip.cognome+" "+P.dip.nome;
+  var body="Buongiorno,\nin allegato la dichiarazione sostitutiva per il rimborso delle utenze domestiche (art. 40 L. 48/2023) relativa a "+monthName(D.mese).toLowerCase()+", firmata e con copia del documento d'identità.\nTotale: "+(lastPdf?lastPdf.tot:"")+"\n\nCordiali saluti\n"+P.dip.nome+" "+P.dip.cognome;
+  return {subj:subj, body:body};
+}
+function canShareFile(){
+  try{ var f=new File([lastPdf.blob], lastPdf.name, {type:"application/pdf"}); return !!(navigator.canShare && navigator.canShare({files:[f]})); }catch(e){ return false; }
+}
+function openSheet(){
+  $("#fileName").textContent=lastPdf.name;
+  $("#fileSize").textContent=Math.max(1,Math.round(lastPdf.blob.size/1024))+" KB · totale "+lastPdf.tot;
+  var m=mailParts();
+  $("#actMail").href="mailto:"+encodeURIComponent(P.datore.email)+"?subject="+encodeURIComponent(m.subj)+"&body="+encodeURIComponent(m.body);
+  var share=canShareFile();
+  $("#actShare").classList.toggle("hidden", !share);
+  $("#actSave").classList.toggle("primary", !share);
+  $("#sheetNote").textContent = share
+    ? "Si apre il menu di condivisione: scegli Mail o Gmail. L’indirizzo "+P.datore.email+" viene copiato, incollalo nel campo “A”."
+    : "Salva il PDF, poi tocca “Apri email al datore” e allega il file appena salvato.";
+  $("#scrim").classList.add("on"); $("#sheet").classList.add("on");
+}
+function closeSheet(){ $("#scrim").classList.remove("on"); $("#sheet").classList.remove("on"); }
+$("#scrim").addEventListener("click", closeSheet);
+
+$("#actShare").addEventListener("click", function(){
+  var m=mailParts(), f=new File([lastPdf.blob], lastPdf.name, {type:"application/pdf"});
+  try{ navigator.clipboard && navigator.clipboard.writeText(P.datore.email).catch(function(){}); }catch(e){}
+  navigator.share({files:[f], title:m.subj, text:m.body}).then(function(){
+    toast("Inviata? Tocca “Fatto” per archiviarla.");
+  }).catch(function(err){
+    if(err && err.name==="AbortError") return;
+    $("#actShare").classList.add("hidden"); $("#actSave").classList.add("primary");
+    $("#sheetNote").textContent="La condivisione diretta non è disponibile qui. Salva il PDF, poi tocca “Apri email al datore” e allegalo.";
+  });
+});
+$("#actSave").addEventListener("click", function(){
+  if(downloadsCap){
+    downloadsCap.save({filename:lastPdf.name, data:lastPdf.blob}).then(function(){ toast("PDF salvato. Ora apri l’email e allegalo."); })
+      .catch(function(e){ if(e && e.code==="declined") return; plainDownload(); });
+  } else plainDownload();
+});
+function plainDownload(){
+  var a=document.createElement("a"); a.href=URL.createObjectURL(lastPdf.blob); a.download=lastPdf.name; a.target="_blank"; a.rel="noopener";
+  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 10000);
+  toast("PDF salvato nei Download. Ora apri l’email e allegalo.");
+}
+$("#actDone").addEventListener("click", function(){
+  var d=new Date();
+  H=H.filter(function(h){ return h.mese!==D.mese; });
+  H.push({mese:D.mese, totale:lastPdf?lastPdf.tot:"", il:d.toLocaleDateString("it-IT")});
+  store.set("history", H);
+  var p=D.mese.split("-"), nx=new Date(+p[0], +p[1], 1);
+  D={mese: nx.getFullYear()+"-"+String(nx.getMonth()+1).padStart(2,"0"), bills:[]}; saveD();
+  strokes=[]; closeSheet(); renderHome(); redraw();
+  toast("Archiviata. Ci vediamo il mese prossimo.");
+});
+
+/* ---------- avvio ---------- */
+buildPersonGroups(); buildIntest(); bindAll(); updateReminderLinks();
+if(P.setupDone) go("home"); else { editMode=false; go("setup"); }
+})();
+</script>
+</body>
+</html>
