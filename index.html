@@ -154,8 +154,18 @@ input.in.bad{ border-color:var(--danger); }
 
 /* id upload */
 .idgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.idslot{ position:relative; aspect-ratio: 1.58; border:1.5px dashed var(--line); border-radius:var(--r-md); background:var(--sunk); display:grid; place-items:center; text-align:center; color:var(--muted); font-size:14px; overflow:hidden; cursor:pointer; }
-.idslot input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+.idslot{ position:relative; width:100%; aspect-ratio: 1.58; border:1.5px dashed var(--line); border-radius:var(--r-md); background:var(--sunk); display:grid; place-items:center; text-align:center; color:var(--muted); font-size:14px; overflow:hidden; cursor:pointer; padding:6px; }
+.idslot.bad{ border-color:var(--danger); }
+.idbtns{ display:flex; gap:6px; margin-top:8px; }
+.btn.small{ min-height:42px; padding:8px 10px; font-size:14px; flex:1; }
+.or{ text-align:center; color:var(--muted); font-size:14px; margin:14px 0 8px; }
+.yearask{ margin-top:14px; border-color:var(--power); }
+.yearask p{ margin:0 0 12px; }
+.yearask .row2 .btn{ min-height:46px; font-size:15px; }
+details.manual{ margin-top:12px; border-top:1px solid var(--line); padding-top:10px; }
+details.manual summary{ cursor:pointer; color:var(--muted); font-size:15px; padding:6px 0; }
+details.manual .acts{ margin-top:8px; }
+.stepnum{ display:inline-grid; place-items:center; width:24px; height:24px; border-radius:50%; background:var(--line); color:var(--ink); font-size:13px; flex:none; }
 .idslot img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
 .idslot.has{ border-style:solid; }
 .idslot .tag{ position:absolute; left:8px; bottom:8px; background:rgba(0,0,0,.6); color:#fff; padding:2px 8px; border-radius:6px; font-size:13px; }
@@ -174,7 +184,7 @@ input.in.bad{ border-color:var(--danger); }
 .sheet .acts{ display:flex; flex-direction:column; gap:10px; }
 .note{ font-size:14px; color:var(--muted); background:var(--sunk); border-radius:var(--r-sm); padding:10px 12px; margin:10px 0 0; }
 
-.toast{ position:fixed; left:50%; bottom:calc(92px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%) translateY(20px); opacity:0; background:var(--ink); color:var(--bg); padding:12px 16px; border-radius:12px; font-size:15px; max-width:92%; z-index:30; transition:all .2s; pointer-events:none; text-align:center; }
+.toast{ position:fixed; left:50%; top:calc(14px + env(safe-area-inset-top,0px)); transform:translateX(-50%) translateY(-20px); opacity:0; background:var(--ink); color:var(--bg); padding:12px 16px; border-radius:12px; font-size:15px; max-width:92%; z-index:30; transition:all .2s; pointer-events:none; text-align:center; }
 .toast.on{ opacity:1; transform:translateX(-50%) translateY(0); }
 
 .empty{ text-align:center; color:var(--muted); font-size:15px; padding:6px 0 12px; margin:0; }
@@ -222,6 +232,8 @@ input.in.bad{ border-color:var(--danger); }
         <label class="f">Ragione sociale<input class="in" data-bind="datore.rs" data-req autocomplete="organization"></label>
         <label class="f">Partita IVA<input class="in" data-bind="datore.piva" data-req inputmode="numeric" maxlength="13"></label>
         <label class="f">Email a cui inviare la dichiarazione<input class="in" type="email" data-bind="datore.email" data-req autocomplete="off" inputmode="email"></label>
+        <label class="f">Anno di imposta<input class="in" data-bind="anno" data-req data-year inputmode="numeric" maxlength="4" placeholder="es. 2026"></label>
+        <p class="hint">L’anno per cui il datore riconosce il rimborso. Compare nella dichiarazione (premessa e punto 7).</p>
       </div>
     </div>
 
@@ -286,12 +298,25 @@ input.in.bad{ border-color:var(--danger); }
 
     <div class="step" data-step="4">
       <h2>Carta d’identità</h2>
-      <p class="lead">Fai una foto a fronte e retro. Resta salvata su questo telefono e viene allegata al PDF ogni mese.</p>
+      <p class="lead">Fotografa fronte e retro, oppure carica il PDF del documento. Resta salvata su questo telefono e viene allegata ogni mese.</p>
       <div class="idgrid">
-        <label class="idslot" id="slotF"><input type="file" accept="image/*" data-doc="docF" aria-label="Foto fronte del documento"><span>Tocca per<br>fotografare il fronte</span></label>
-        <label class="idslot" id="slotB"><input type="file" accept="image/*" data-doc="docB" aria-label="Foto retro del documento"><span>Tocca per<br>fotografare il retro</span></label>
+        <div>
+          <button type="button" class="idslot" id="slotF" data-pick="camF"><span>Fronte</span></button>
+          <div class="idbtns"><button type="button" class="btn small" data-pick="camF">Scatta</button><button type="button" class="btn small" data-pick="galF">Galleria</button></div>
+        </div>
+        <div>
+          <button type="button" class="idslot" id="slotB" data-pick="camB"><span>Retro</span></button>
+          <div class="idbtns"><button type="button" class="btn small" data-pick="camB">Scatta</button><button type="button" class="btn small" data-pick="galB">Galleria</button></div>
+        </div>
       </div>
-      <p class="hint" style="margin-top:10px">Controlla che il documento sia in corso di validità. Quando scade, tocca la foto per sostituirla.</p>
+      <p class="or">oppure</p>
+      <button type="button" class="btn block" data-pick="pdfIn"><svg><use href="#i-pdf"/></svg>Carica il PDF del documento</button>
+      <input type="file" id="camF" accept="image/*" capture="environment" data-doc="docF" hidden>
+      <input type="file" id="galF" accept="image/*" data-doc="docF" hidden>
+      <input type="file" id="camB" accept="image/*" capture="environment" data-doc="docB" hidden>
+      <input type="file" id="galB" accept="image/*" data-doc="docB" hidden>
+      <input type="file" id="pdfIn" accept="application/pdf,.pdf" hidden>
+      <p class="hint" style="margin-top:12px">Senza documento non si può proseguire. Quando scade, torna qui e sostituiscilo.</p>
     </div>
 
     <div class="step" data-step="5">
@@ -329,6 +354,14 @@ input.in.bad{ border-color:var(--danger); }
         <p class="status" id="statusLine"></p>
       </div>
       <button class="iconbtn" id="openSettings" aria-label="Impostazioni"><svg><use href="#i-gear"/></svg></button>
+    </div>
+
+    <div class="panel yearask hidden" id="yearAsk" role="alert">
+      <p id="yearAskText"></p>
+      <div class="row2">
+        <button class="btn primary" id="yearYes" type="button"></button>
+        <button class="btn" id="yearNo" type="button"></button>
+      </div>
     </div>
 
     <div class="block">
@@ -373,13 +406,21 @@ input.in.bad{ border-color:var(--danger); }
   <h3 id="sheetTitle">PDF pronto</h3>
   <p class="hint" id="sheetSub">Dichiarazione firmata con la carta d’identità allegata.</p>
   <div class="file"><svg><use href="#i-pdf"/></svg><div><b id="fileName"></b><span id="fileSize"></span></div></div>
-  <div class="acts">
-    <button class="btn primary" id="actShare" type="button"><svg><use href="#i-mail"/></svg>Invia con l’app email</button>
-    <button class="btn" id="actSave" type="button"><svg><use href="#i-pdf"/></svg>Salva il PDF</button>
-    <a class="btn" id="actMail"><svg><use href="#i-mail"/></svg>Apri email al datore</a>
+  <div class="acts" id="shareBox">
+    <button class="btn primary" id="actShare" type="button"><svg><use href="#i-mail"/></svg>Invia via email con PDF allegato</button>
+    <p class="note" id="shareNote" style="margin:0"></p>
+  </div>
+  <details class="manual" id="manualBox">
+    <summary id="manualSum">L’email non si apre? Invia a mano</summary>
+    <p class="note" id="manualNote"></p>
+    <div class="acts">
+      <button class="btn" id="actSave" type="button"><span class="stepnum">1</span>Scarica il PDF</button>
+      <a class="btn" id="actMail"><span class="stepnum">2</span>Scrivi l’email e allega il PDF</a>
+    </div>
+  </details>
+  <div class="acts" style="margin-top:14px">
     <button class="btn ghost" id="actDone" type="button">Fatto: segna come inviata</button>
   </div>
-  <p class="note" id="sheetNote"></p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -403,6 +444,7 @@ var DEF = {
   immobile: blankPerson(), spese: blankPerson(),
   intest:{tipo:"no", denom:"", cfCond:"", cognome:"", nome:"", cf:""},
   promemoria:{giorno:"5", ora:"09:00"},
+  anno:"", annoKeep:"",
   setupDone:false
 };
 function merge(a,b){ var o = JSON.parse(JSON.stringify(a)); if(b) for(var k in b){ if(o[k] && typeof o[k]==="object" && typeof b[k]==="object") o[k]=merge(o[k], b[k]); else o[k]=b[k]; } return o; }
@@ -501,6 +543,7 @@ function validateField(el, soft){
   if(el.hasAttribute("data-req") && !v) ok=false;
   if(ok && v && el.hasAttribute("data-cf")) ok = CF_RE.test(v.toUpperCase());
   if(ok && v && el.type==="email") ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  if(ok && v && el.hasAttribute("data-year")) ok = /^20\d{2}$/.test(v);
   if(ok && v && el.dataset.bind==="datore.piva") ok = /^(IT)?\d{11}$/i.test(v.replace(/\s/g,""));
   if(soft && !v) return true;
   el.classList.toggle("bad", !ok);
@@ -521,25 +564,72 @@ function compressImage(file, maxSide, q){
     img.src=url;
   });
 }
+function docOk(){ return !!store.get("docF",null) && (!!store.get("docB",null) || store.get("docSrc","img")==="pdf"); }
 function renderDocs(){
+  var src=store.get("docSrc","img");
   [["docF","#slotF","Fronte"],["docB","#slotB","Retro"]].forEach(function(d){
     var slot=$(d[1]), data=store.get(d[0], null);
-    var old=slot.querySelector("img"); if(old) old.remove(); var t=slot.querySelector(".tag"); if(t) t.remove();
+    slot.innerHTML="";
     slot.classList.toggle("has", !!data);
-    slot.querySelector("span").style.visibility = data ? "hidden" : "visible";
-    if(data){ var im=new Image(); im.src=data; im.alt="Documento: "+d[2].toLowerCase(); slot.appendChild(im); slot.insertAdjacentHTML("beforeend",'<span class="tag">'+d[2]+' · tocca per cambiare</span>'); }
+    slot.classList.remove("bad");
+    if(data){
+      var im=new Image(); im.src=data; im.alt="Documento: "+d[2].toLowerCase(); slot.appendChild(im);
+      slot.insertAdjacentHTML("beforeend",'<span class="tag">'+d[2]+(src==="pdf"?" (da PDF)":"")+'</span>');
+    } else if(d[0]==="docB" && src==="pdf" && store.get("docF",null)){
+      slot.insertAdjacentHTML("beforeend",'<span>Il PDF ha una sola pagina:<br>va bene se contiene fronte e retro</span>');
+    } else {
+      slot.insertAdjacentHTML("beforeend",'<span>'+d[2]+'<br>tocca per fotografare</span>');
+    }
   });
+  if(step===4) $("#wizNext").textContent="Avanti";
 }
+$$("[data-pick]").forEach(function(b){ b.addEventListener("click", function(){ var i=document.getElementById(b.dataset.pick); if(i) i.click(); }); });
 $$("[data-doc]").forEach(function(inp){
   inp.addEventListener("change", function(){
     var f=inp.files && inp.files[0]; if(!f) return;
+    if(f.type==="application/pdf" || /\.pdf$/i.test(f.name)){ handlePdf(f); inp.value=""; return; }
     compressImage(f, 1500, 0.72).then(function(data){
+      if(store.get("docSrc","img")==="pdf"){ store.del(inp.dataset.doc==="docF"?"docB":"docF"); }
+      store.set("docSrc","img");
       if(!store.set(inp.dataset.doc, data)) toast("Foto tenuta solo per questa sessione: la memoria del browser non permette di salvarla.");
       renderDocs();
-    }).catch(function(){ toast("Formato immagine non letto. Riprova scattando una foto."); });
+    }).catch(function(){ toast("Immagine non leggibile. Riprova con una foto JPG o PNG."); });
     inp.value="";
   });
 });
+$("#pdfIn").addEventListener("change", function(){ var f=this.files&&this.files[0]; if(f) handlePdf(f); this.value=""; });
+
+function loadScript(src){ return new Promise(function(res, rej){ var s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+var PDFJS=[["https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"],
+           ["https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js","https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js"]];
+function ensurePdfJs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  function tryAt(i){
+    return loadScript(PDFJS[i][0]).then(function(){ window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS[i][1]; return window.pdfjsLib; })
+      .catch(function(e){ if(i+1<PDFJS.length) return tryAt(i+1); throw e; });
+  }
+  return tryAt(0);
+}
+function handlePdf(file){
+  toast("Leggo il PDF…", 6000);
+  file.arrayBuffer().then(function(buf){
+    return ensurePdfJs().then(function(lib){ return lib.getDocument({data:buf}).promise; });
+  }).then(function(pdf){
+    var n=Math.min(pdf.numPages,2), out=[], chain=Promise.resolve();
+    for(var i=1;i<=n;i++){ (function(i){
+      chain=chain.then(function(){ return pdf.getPage(i); }).then(function(page){
+        var v=page.getViewport({scale:1}), sc=Math.min(3, 1700/Math.max(v.width,v.height)), vp=page.getViewport({scale:sc});
+        var c=document.createElement("canvas"); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+        var x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height);
+        return page.render({canvasContext:x, viewport:vp}).promise.then(function(){ out.push(c.toDataURL("image/jpeg",0.78)); });
+      }); })(i); }
+    return chain.then(function(){ return out; });
+  }).then(function(pages){
+    store.set("docSrc","pdf"); store.set("docF", pages[0]);
+    if(pages[1]) store.set("docB", pages[1]); else store.del("docB");
+    renderDocs(); toast("Documento caricato dal PDF.");
+  }).catch(function(e){ console.error(e); toast("Non riesco a leggere questo PDF (potrebbe essere protetto). Prova con le foto.", 5000); });
+}
 
 /* ---------- promemoria ---------- */
 (function(){ var s=$("#remDay"); for(var i=1;i<=28;i++){ s.insertAdjacentHTML("beforeend",'<option value="'+i+'">'+i+'</option>'); } })();
@@ -588,11 +678,18 @@ function showStep(n){
   $$(".step").forEach(function(s){ s.classList.toggle("on", +s.dataset.step===n); });
   $$("#stepsBar i").forEach(function(b,i){ b.classList.toggle("on", i<n); });
   $("#wizBack").style.visibility = n===1 ? "hidden" : "visible";
-  $("#wizNext").textContent = n===5 ? "Fine" : (n===4 && !store.get("docF",null) ? "Avanti senza foto" : "Avanti");
+  $("#wizNext").textContent = n===5 ? "Fine" : "Avanti";
   window.scrollTo(0,0);
 }
 function stepValid(n){
   var ok=true, first=null;
+  if(n===4){
+    if(docOk()) return true;
+    if(!store.get("docF",null)) $("#slotF").classList.add("bad");
+    if(!store.get("docB",null)) $("#slotB").classList.add("bad");
+    toast("Carica fronte e retro della carta d’identità (foto o PDF) per continuare.", 4000);
+    return false;
+  }
   $$('.step[data-step="'+n+'"] [data-bind]').forEach(function(el){
     if(el.offsetParent===null) return;
     var req = el.hasAttribute("data-req") || (el.closest(".reveal.on") && !el.closest(".reveal-grado") && el.dataset.bind.match(/\.(nome|cognome)$/));
@@ -612,7 +709,7 @@ $("#wizBack").addEventListener("click", function(){ if(step>1) showStep(step-1);
 $("#setupClose").addEventListener("click", function(){ go("home"); });
 $("#openSettings").addEventListener("click", function(){ editMode=true; go("setup"); });
 
-function go(view){
+function go(view, startStep){
   $("#setup").classList.toggle("hidden", view!=="setup");
   $("#home").classList.toggle("hidden", view!=="home");
   $("#dock").classList.toggle("hidden", view!=="home");
@@ -620,7 +717,7 @@ function go(view){
     $("#setupKicker").textContent = editMode ? "Impostazioni" : "Prima configurazione";
     $("#setupTitle").textContent = editMode ? "Dati salvati" : "Lo fai una volta sola";
     $("#setupClose").classList.toggle("hidden", !editMode);
-    bindAll(); renderDocs(); updateReminderLinks(); showStep(1);
+    showStep(startStep||1); bindAll(); renderDocs(); updateReminderLinks();
   } else { renderHome(); requestAnimationFrame(sizeSig); }
   window.scrollTo(0,0);
 }
@@ -632,9 +729,20 @@ function renderHome(){
   var sent = H.filter(function(h){ return h.mese===D.mese; })[0];
   var sl=$("#statusLine");
   if(sent){ sl.textContent="Già inviata il "+sent.il+". Puoi inviarne un’altra se serve."; sl.className="status ok"; }
-  else { sl.textContent = "Da inviare a "+(P.datore.rs||"datore di lavoro"); sl.className="status"; }
-  renderBills(); renderHistory();
+  else { sl.textContent = "Anno di imposta "+P.anno+". Da inviare a "+(P.datore.rs||"datore di lavoro").replace(/\.$/,"")+"."; sl.className="status"; }
+  renderYearAsk(); renderBills(); renderHistory();
 }
+function yearPending(){ var y=D.mese.slice(0,4); return !!P.anno && y!==P.anno && P.annoKeep!==y ? y : ""; }
+function renderYearAsk(){
+  var y=yearPending(), box=$("#yearAsk");
+  box.classList.toggle("hidden", !y);
+  if(!y) return;
+  $("#yearAskText").textContent="Il mese scelto è del "+y+", ma l’anno di imposta impostato è il "+P.anno+". Vuoi cambiare l’anno di imposta in "+y+"?";
+  $("#yearYes").textContent="Sì, passa al "+y;
+  $("#yearNo").textContent="No, resta "+P.anno;
+}
+$("#yearYes").addEventListener("click", function(){ P.anno=D.mese.slice(0,4); P.annoKeep=""; saveP(); renderHome(); toast("Anno di imposta aggiornato al "+P.anno+"."); });
+$("#yearNo").addEventListener("click", function(){ P.annoKeep=D.mese.slice(0,4); saveP(); renderHome(); });
 $("#monthInput").addEventListener("change", function(e){ if(e.target.value){ D.mese=e.target.value; saveD(); renderHome(); } });
 
 function billTpl(b){
@@ -762,7 +870,7 @@ function buildPdf(){
   var jsPDF=window.jspdf.jsPDF;
   var doc=new jsPDF({unit:"mm", format:"a4"});
   var L=18, R=192, W=R-L, y=18, LH=4.6, PB=280;
-  var anno=D.mese.slice(0,4), today=new Date();
+  var anno=P.anno, today=new Date();
   var oggi=String(today.getDate()).padStart(2,"0")+"/"+String(today.getMonth()+1).padStart(2,"0")+"/"+today.getFullYear();
   var BL="................";
 
@@ -881,13 +989,14 @@ function buildPdf(){
   y+=32;
 
   // Documento identità
-  var docF=store.get("docF",null), docB=store.get("docB",null);
+  var docF=store.get("docF",null), docB=store.get("docB",null), fromPdf=store.get("docSrc","img")==="pdf";
   if(docF||docB){
     doc.addPage(); y=18;
     text("Copia del documento d'identità di "+P.dip.cognome.toUpperCase()+" "+P.dip.nome.toUpperCase(), {bold:true, size:11, after:4});
-    [docF,docB].forEach(function(img){
+    [docF,docB].forEach(function(img, idx){
       if(!img) return;
-      var p=doc.getImageProperties(img), maxW=130, maxH=100;
+      if(fromPdf && idx>0){ doc.addPage(); y=18; }
+      var p=doc.getImageProperties(img), maxW=fromPdf?W:130, maxH=fromPdf?(PB-y-4):100;
       var s=Math.min(maxW/p.width, maxH/p.height), w=p.width*s, h=p.height*s;
       need(h+6); doc.addImage(img, "JPEG", L+(W-w)/2, y, w, h); y+=h+8;
     });
@@ -900,6 +1009,8 @@ function checkReady(){
   var miss=[];
   if(!P.datore.email) miss.push("email del datore");
   if(!P.dip.cf || !P.dip.cognome) miss.push("i tuoi dati");
+  if(!P.anno) miss.push("l’anno di imposta (impostazioni)");
+  if(!docOk()) miss.push("la carta d’identità (impostazioni)");
   if(!D.bills.length) miss.push("almeno una bolletta");
   D.bills.forEach(function(b){ if(!parseEuro(b.importo)) miss.push("l’importo di "+TIPI[b.tipo].label.toLowerCase()); });
   if(!strokes.length) miss.push("la firma");
@@ -907,6 +1018,7 @@ function checkReady(){
 }
 $("#makePdf").addEventListener("click", function(){
   var miss=checkReady();
+  if(yearPending()){ window.scrollTo({top:0, behavior:"smooth"}); toast("Rispondi prima alla domanda sull’anno di imposta."); return; }
   if(miss.length){ toast("Manca: "+miss.join(", ")+".", 4000); if(miss.indexOf("la firma")>-1 && miss.length===1) $("#sigbox").scrollIntoView({behavior:"smooth", block:"center"}); return; }
   var btn=$("#makePdf"); btn.disabled=true; btn.lastChild.textContent="Creo il PDF…";
   ensureJsPdf().then(function(){
@@ -943,16 +1055,20 @@ function canShareFile(){
 }
 function openSheet(){
   $("#fileName").textContent=lastPdf.name;
-  $("#fileSize").textContent=Math.max(1,Math.round(lastPdf.blob.size/1024))+" KB · totale "+lastPdf.tot;
+  $("#fileSize").textContent=Math.max(1,Math.round(lastPdf.blob.size/1024))+" KB, totale "+lastPdf.tot;
   var m=mailParts();
   $("#actMail").href="mailto:"+encodeURIComponent(P.datore.email)+"?subject="+encodeURIComponent(m.subj)+"&body="+encodeURIComponent(m.body);
   var share=canShareFile();
-  $("#actShare").classList.toggle("hidden", !share);
-  $("#actSave").classList.toggle("primary", !share);
-  $("#sheetNote").textContent = share
-    ? "Si apre il menu di condivisione: scegli Mail o Gmail. L’indirizzo "+P.datore.email+" viene copiato, incollalo nel campo “A”."
-    : "Salva il PDF, poi tocca “Apri email al datore” e allega il file appena salvato.";
+  $("#shareBox").classList.toggle("hidden", !share);
+  $("#shareNote").textContent="Scegli Gmail o Mail: il PDF è già allegato. L’indirizzo "+P.datore.email+" viene copiato, incollalo nel campo “A” e invia.";
+  setManual(!share, share ? "" : "Da questo dispositivo il PDF non si può allegare in automatico all’email.");
   $("#scrim").classList.add("on"); $("#sheet").classList.add("on");
+}
+function setManual(open, why){
+  var box=$("#manualBox");
+  box.open=open;
+  $("#manualSum").classList.toggle("hidden", open);
+  $("#manualNote").textContent=(why?why+" ":"")+"Scarica il PDF, poi tocca il punto 2: si apre l’email già indirizzata a "+P.datore.email+" con oggetto e testo pronti. Aggiungi come allegato il PDF appena scaricato e invia.";
 }
 function closeSheet(){ $("#scrim").classList.remove("on"); $("#sheet").classList.remove("on"); }
 $("#scrim").addEventListener("click", closeSheet);
@@ -964,20 +1080,20 @@ $("#actShare").addEventListener("click", function(){
     toast("Inviata? Tocca “Fatto” per archiviarla.");
   }).catch(function(err){
     if(err && err.name==="AbortError") return;
-    $("#actShare").classList.add("hidden"); $("#actSave").classList.add("primary");
-    $("#sheetNote").textContent="La condivisione diretta non è disponibile qui. Salva il PDF, poi tocca “Apri email al datore” e allegalo.";
+    $("#shareBox").classList.add("hidden");
+    setManual(true, "L’invio diretto non è riuscito su questo dispositivo.");
   });
 });
 $("#actSave").addEventListener("click", function(){
   if(downloadsCap){
-    downloadsCap.save({filename:lastPdf.name, data:lastPdf.blob}).then(function(){ toast("PDF salvato. Ora apri l’email e allegalo."); })
+    downloadsCap.save({filename:lastPdf.name, data:lastPdf.blob}).then(function(){ toast("PDF scaricato. Ora tocca il punto 2."); })
       .catch(function(e){ if(e && e.code==="declined") return; plainDownload(); });
   } else plainDownload();
 });
 function plainDownload(){
   var a=document.createElement("a"); a.href=URL.createObjectURL(lastPdf.blob); a.download=lastPdf.name; a.target="_blank"; a.rel="noopener";
   document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 10000);
-  toast("PDF salvato nei Download. Ora apri l’email e allegalo.");
+  toast("PDF scaricato. Ora tocca il punto 2.");
 }
 $("#actDone").addEventListener("click", function(){
   var d=new Date();
@@ -992,7 +1108,10 @@ $("#actDone").addEventListener("click", function(){
 
 /* ---------- avvio ---------- */
 buildPersonGroups(); buildIntest(); bindAll(); updateReminderLinks();
-if(P.setupDone) go("home"); else { editMode=false; go("setup"); }
+if(!P.setupDone){ editMode=false; go("setup"); }
+else if(!P.anno){ editMode=true; go("setup", 1); toast("Inserisci l’anno di imposta per continuare.", 4000); }
+else if(!docOk()){ editMode=true; go("setup", 4); toast("Carica la carta d’identità per continuare.", 4000); }
+else go("home");
 })();
 </script>
 </body>
